@@ -1,8 +1,7 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 import urllib.request
 import json
-from flask import Flask, jsonify
-from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
@@ -17,6 +16,14 @@ last_data = {
     "mode": "INIT"
 }
 
+@app.route("/")
+def home():
+    return "Backend IoT Fire Running ✅"
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "UP"})
+
 @app.route("/api/data")
 def get_data():
 
@@ -24,19 +31,14 @@ def get_data():
 
     try:
 
-        print("\n🔍 Test de disponibilité")
-
         url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?api_key={READ_API_KEY}&results=1"
 
         response = urllib.request.urlopen(url, timeout=10)
 
-        if response.status != 200:
-            raise Exception("ThingSpeak indisponible")
-
         data = json.loads(response.read())
 
         if len(data["feeds"]) == 0:
-            raise Exception("Pas de données")
+            raise Exception("No Data")
 
         last = data["feeds"][0]
 
@@ -56,17 +58,11 @@ def get_data():
 
     except Exception as e:
 
-        print("❌ Erreur:", e)
+        print("Erreur:", e)
 
         last_data["mode"] = "FAILOVER"
 
         return jsonify(last_data)
 
-
-@app.route("/health")
-def health():
-    return jsonify({
-        "status": "UP"
-    })
-
-app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
